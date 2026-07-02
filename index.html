@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>검사기 라이브 뷰어</title>
+  <script src="config.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #141b24;
+      --text: #f4f7fb;
+      --muted: #9aa7b8;
+      --accent-active: #7bc4ff;
+      --border: rgba(255, 255, 255, 0.08);
+      --panel-count: 4;
+      --transition: 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    }
+
+    .app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+    }
+
+    .stage { position: absolute; inset: 0; }
+
+    .stage[data-view="all"] .stream-fit {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: #000;
+    }
+
+    .stage[data-view="all"] .stream-frame {
+      width: min(100vw, calc(100vh * 32 / 9));
+      height: min(100vh, calc(100vw * 9 / 32));
+      aspect-ratio: 32 / 9;
+      overflow: hidden;
+    }
+
+    .stage[data-view="all"] .stream-scaler {
+      width: 100%;
+      height: 100%;
+      transform: none;
+    }
+
+    .stage:not([data-view="all"]) .stream-fit {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #000;
+    }
+
+    .stage:not([data-view="all"]) .stream-frame {
+      width: 100%;
+      height: 100%;
+    }
+
+    .stage:not([data-view="all"]) .stream-scaler {
+      width: calc(100% * var(--panel-count));
+      height: 100%;
+      transform: translateX(calc(-100% / var(--panel-count) * var(--panel-index)));
+      transition: transform var(--transition);
+      will-change: transform;
+    }
+
+    .stream-scaler iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      pointer-events: none;
+    }
+
+    .overlay-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.72), transparent);
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(20, 27, 36, 0.82);
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff4d4f;
+      box-shadow: 0 0 12px rgba(255, 77, 79, 0.8);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+
+    .hint { color: var(--muted); font-size: 13px; }
+
+    .channel-bar {
+      position: absolute;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 18px;
+      background: rgba(11, 15, 20, 0.82);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    .channel-btn {
+      min-width: 92px;
+      padding: 14px 20px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .channel-btn:hover {
+      background: #1b2430;
+      transform: translateY(-1px);
+    }
+
+    .channel-btn.active {
+      background: rgba(77, 163, 255, 0.16);
+      border-color: rgba(123, 196, 255, 0.55);
+      color: var(--accent-active);
+    }
+
+    @media (max-width: 720px) {
+      .channel-bar {
+        left: 12px;
+        right: 12px;
+        transform: none;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .channel-btn { min-width: calc(50% - 8px); }
+      .hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="stage" id="stage" data-view="all">
+      <div class="stream-fit">
+        <div class="stream-frame">
+          <div class="stream-scaler" id="streamScaler">
+            <iframe
+              id="liveFrame"
+              title="검사기 라이브"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              referrerpolicy="strict-origin-when-cross-origin"
+            ></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay-top">
+      <div class="badge">
+        <span class="live-dot"></span>
+        <span id="currentLabel">전체</span>
+      </div>
+      <div class="hint">1 여주 · 2 양산 · 3 광주 · 4 전체</div>
+    </div>
+
+    <nav class="channel-bar" aria-label="공장 선택">
+      <button class="channel-btn" data-view="yeoju">여주</button>
+      <button class="channel-btn" data-view="yangsan">양산</button>
+      <button class="channel-btn" data-view="gwangju">광주</button>
+      <button class="channel-btn active" data-view="all">전체</button>
+    </nav>
+  </div>
+
+  <script>
+    const { youtubeVideoId, factories } = window.LIVE_CONFIG;
+    const labels = Object.fromEntries(
+      Object.entries(factories).map(([key, value]) => [key, value.label])
+    );
+    labels.all = "전체";
+
+    const iframe = document.getElementById("liveFrame");
+    iframe.src =
+      "https://www.youtube.com/embed/" +
+      encodeURIComponent(youtubeVideoId) +
+      "?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1";
+
+    const stage = document.getElementById("stage");
+    const currentLabel = document.getElementById("currentLabel");
+    const buttons = [...document.querySelectorAll(".channel-btn")];
+
+    function setView(view) {
+      stage.dataset.view = view;
+      buttons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.view === view);
+      });
+      currentLabel.textContent = labels[view] || "전체";
+
+      if (view === "all") {
+        stage.style.removeProperty("--panel-index");
+        return;
+      }
+
+      const factory = factories[view];
+      if (!factory) return;
+      stage.style.setProperty("--panel-index", String(factory.panel));
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => setView(button.dataset.view));
+    });
+
+    window.addEventListener("keydown", (event) => {
+      const shortcuts = ["yeoju", "yangsan", "gwangju", "all"];
+      const index = Number(event.key) - 1;
+      if (index >= 0 && index < shortcuts.length) {
+        setView(shortcuts[index]);
+      }
+    });
+
+    setView("all");
+  </script>
+</body>
+</html>
