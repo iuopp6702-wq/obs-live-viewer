@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
   <title>검사기 라이브 뷰어</title>
   <script src="config.js"></script>
   <style>
@@ -13,8 +14,6 @@
       --muted: #9aa7b8;
       --accent-active: #7bc4ff;
       --border: rgba(255, 255, 255, 0.08);
-      --panel-count: 4;
-      --transition: 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     * { box-sizing: border-box; }
@@ -24,7 +23,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: var(--bg);
+      background: #000;
       color: var(--text);
       font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
     }
@@ -33,59 +32,85 @@
       position: relative;
       width: 100vw;
       height: 100vh;
-      overflow: hidden;
       background: #000;
     }
 
-    .stage { position: absolute; inset: 0; }
-
-    .stage[data-view="all"] .stream-fit {
+    .player-wrap {
       position: absolute;
       inset: 0;
-      display: grid;
-      place-items: center;
       background: #000;
     }
 
-    .stage[data-view="all"] .stream-frame {
-      width: min(100vw, calc(100vh * 32 / 9));
-      height: min(100vh, calc(100vw * 9 / 32));
-      aspect-ratio: 32 / 9;
-      overflow: hidden;
-    }
-
-    .stage[data-view="all"] .stream-scaler {
-      width: 100%;
-      height: 100%;
-      transform: none;
-    }
-
-    .stage:not([data-view="all"]) .stream-fit {
+    .player-wrap iframe {
       position: absolute;
       inset: 0;
-      overflow: hidden;
-      background: #000;
-    }
-
-    .stage:not([data-view="all"]) .stream-frame {
-      width: 100%;
-      height: 100%;
-    }
-
-    .stage:not([data-view="all"]) .stream-scaler {
-      width: calc(100% * var(--panel-count));
-      height: 100%;
-      transform: translateX(calc(-100% / var(--panel-count) * var(--panel-index)));
-      transition: transform var(--transition);
-      will-change: transform;
-    }
-
-    .stream-scaler iframe {
       width: 100%;
       height: 100%;
       border: 0;
-      display: block;
-      pointer-events: none;
+    }
+
+    .gate {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      padding: 24px;
+    }
+
+    .gate.visible { display: flex; }
+
+    .gate-card {
+      width: min(100%, 380px);
+      padding: 32px 28px;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .gate-card h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+
+    .gate-card p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .gate-card input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0b0f14;
+      color: var(--text);
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+
+    .gate-card button {
+      width: 100%;
+      padding: 14px;
+      border: 0;
+      border-radius: 10px;
+      background: #2d7dd2;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .gate-error {
+      margin-top: 10px;
+      color: #ff6b6b;
+      font-size: 13px;
+      min-height: 18px;
     }
 
     .overlay-top {
@@ -183,20 +208,25 @@
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="stage" id="stage" data-view="all">
-      <div class="stream-fit">
-        <div class="stream-frame">
-          <div class="stream-scaler" id="streamScaler">
-            <iframe
-              id="liveFrame"
-              title="검사기 라이브"
-              allow="autoplay; encrypted-media; picture-in-picture"
-              referrerpolicy="strict-origin-when-cross-origin"
-            ></iframe>
-          </div>
-        </div>
-      </div>
+  <div class="gate" id="gate">
+    <div class="gate-card">
+      <h1>검사기 라이브</h1>
+      <p>공유받은 접근 코드를 입력하세요.</p>
+      <input id="gateInput" type="password" placeholder="접근 코드" autocomplete="off" />
+      <button type="button" id="gateSubmit">입장</button>
+      <div class="gate-error" id="gateError"></div>
+    </div>
+  </div>
+
+  <div class="app" id="app" hidden>
+    <div class="player-wrap">
+      <iframe
+        id="liveFrame"
+        title="검사기 라이브"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        allowfullscreen
+        referrerpolicy="strict-origin-when-cross-origin"
+      ></iframe>
     </div>
 
     <div class="overlay-top">
@@ -208,60 +238,113 @@
     </div>
 
     <nav class="channel-bar" aria-label="공장 선택">
-      <button class="channel-btn" data-view="yeoju">여주</button>
-      <button class="channel-btn" data-view="yangsan">양산</button>
-      <button class="channel-btn" data-view="gwangju">광주</button>
-      <button class="channel-btn active" data-view="all">전체</button>
+      <button class="channel-btn" data-channel="yeoju">여주</button>
+      <button class="channel-btn" data-channel="yangsan">양산</button>
+      <button class="channel-btn" data-channel="gwangju">광주</button>
+      <button class="channel-btn" data-channel="all">전체</button>
     </nav>
   </div>
 
   <script>
-    const { youtubeVideoId, factories } = window.LIVE_CONFIG;
-    const labels = Object.fromEntries(
-      Object.entries(factories).map(([key, value]) => [key, value.label])
-    );
-    labels.all = "전체";
-
+    const { channels, defaultChannel, accessKey = "" } = window.LIVE_CONFIG;
+    const gate = document.getElementById("gate");
+    const gateInput = document.getElementById("gateInput");
+    const gateSubmit = document.getElementById("gateSubmit");
+    const gateError = document.getElementById("gateError");
+    const app = document.getElementById("app");
     const iframe = document.getElementById("liveFrame");
-    iframe.src =
-      "https://www.youtube.com/embed/" +
-      encodeURIComponent(youtubeVideoId) +
-      "?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1";
-
-    const stage = document.getElementById("stage");
     const currentLabel = document.getElementById("currentLabel");
     const buttons = [...document.querySelectorAll(".channel-btn")];
 
-    function setView(view) {
-      stage.dataset.view = view;
-      buttons.forEach((button) => {
-        button.classList.toggle("active", button.dataset.view === view);
-      });
-      currentLabel.textContent = labels[view] || "전체";
+    const channelOrder = ["yeoju", "yangsan", "gwangju", "all"];
+    const STORAGE_KEY = "live-viewer-access";
 
-      if (view === "all") {
-        stage.style.removeProperty("--panel-index");
-        return;
-      }
-
-      const factory = factories[view];
-      if (!factory) return;
-      stage.style.setProperty("--panel-index", String(factory.panel));
+    function embedUrl(videoId) {
+      return (
+        "https://www.youtube.com/embed/" +
+        encodeURIComponent(videoId) +
+        "?autoplay=1&mute=1&controls=1&rel=0&modestbranding=1&playsinline=1&fs=1"
+      );
     }
 
-    buttons.forEach((button) => {
-      button.addEventListener("click", () => setView(button.dataset.view));
-    });
-
-    window.addEventListener("keydown", (event) => {
-      const shortcuts = ["yeoju", "yangsan", "gwangju", "all"];
-      const index = Number(event.key) - 1;
-      if (index >= 0 && index < shortcuts.length) {
-        setView(shortcuts[index]);
+    function isAccessGranted() {
+      if (!accessKey) return true;
+      const urlKey = new URLSearchParams(location.search).get("key");
+      if (urlKey === accessKey) {
+        sessionStorage.setItem(STORAGE_KEY, accessKey);
+        return true;
       }
+      return sessionStorage.getItem(STORAGE_KEY) === accessKey;
+    }
+
+    function showGate() {
+      gate.classList.add("visible");
+      app.hidden = true;
+      gateInput.focus();
+    }
+
+    function showApp() {
+      gate.classList.remove("visible");
+      app.hidden = false;
+      initViewer();
+    }
+
+    function tryAccess(value) {
+      if (value === accessKey) {
+        sessionStorage.setItem(STORAGE_KEY, accessKey);
+        showApp();
+        return;
+      }
+      gateError.textContent = "접근 코드가 올바르지 않습니다.";
+    }
+
+    gateSubmit.addEventListener("click", () => tryAccess(gateInput.value.trim()));
+    gateInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") tryAccess(gateInput.value.trim());
     });
 
-    setView("all");
+    function setChannel(channelKey) {
+      const channel = channels[channelKey];
+      if (!channel) return;
+
+      buttons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.channel === channelKey);
+      });
+      currentLabel.textContent = channel.label;
+
+      const params = new URLSearchParams(location.search);
+      params.set("ch", channelKey);
+      if (accessKey) params.set("key", accessKey);
+      history.replaceState(null, "", "?" + params.toString());
+
+      iframe.src = embedUrl(channel.youtubeVideoId);
+    }
+
+    function initViewer() {
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => setChannel(button.dataset.channel));
+      });
+
+      window.addEventListener("keydown", (event) => {
+        const index = Number(event.key) - 1;
+        if (index >= 0 && index < channelOrder.length) {
+          setChannel(channelOrder[index]);
+        }
+      });
+
+      const initial =
+        new URLSearchParams(location.search).get("ch") ||
+        defaultChannel ||
+        "all";
+
+      setChannel(channels[initial] ? initial : "all");
+    }
+
+    if (isAccessGranted()) {
+      showApp();
+    } else {
+      showGate();
+    }
   </script>
 </body>
 </html>
