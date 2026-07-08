@@ -264,11 +264,20 @@
 
     const buttons = [...document.querySelectorAll(".channel-btn")];
 
-    function embedUrl(videoId) {
+    function embedUrl(channel) {
+      const params = "?autoplay=1&mute=1&controls=1&rel=0&modestbranding=1&playsinline=1&fs=1";
+      // 채널 ID가 있으면 '현재 라이브 중인 영상'을 자동으로 찾아 재생 (영상 ID가 바뀌어도 갱신 불필요)
+      if (channel.youtubeChannelId) {
+        return (
+          "https://www.youtube.com/embed/live_stream?channel=" +
+          encodeURIComponent(channel.youtubeChannelId) +
+          params
+        );
+      }
       return (
         "https://www.youtube.com/embed/" +
-        encodeURIComponent(videoId) +
-        "?autoplay=1&mute=1&controls=1&rel=0&modestbranding=1&playsinline=1&fs=1"
+        encodeURIComponent(channel.youtubeVideoId) +
+        params
       );
     }
 
@@ -322,7 +331,7 @@
       if (accessKey) params.set("key", accessKey);
       history.replaceState(null, "", "?" + params.toString());
 
-      iframe.src = embedUrl(channel.youtubeVideoId);
+      iframe.src = embedUrl(channel);
     }
 
     function initViewer() {

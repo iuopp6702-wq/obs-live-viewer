@@ -18,7 +18,8 @@ window.LIVE_CONFIG = {
     },
     all: {
       label: "전체",
-      youtubeVideoId: "CINQDMX8IDc", // ALL (생산기술팀)
+      // 생산기술팀 채널은 공개 스트림이라 채널 ID 기반 동적 임베드 사용 (영상 ID가 바뀌어도 항상 최신 라이브를 자동으로 보여줌)
+      youtubeChannelId: "UCl78E7rFThV0KBCvbMcRtRA",
     },
   },
 };
