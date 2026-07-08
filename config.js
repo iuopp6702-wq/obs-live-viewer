@@ -18,7 +18,7 @@ window.LIVE_CONFIG = {
     },
     all: {
       label: "전체",
-      youtubeVideoId: "9Pt9iHfHpDI", // ALL (생산기술팀) - watcher가 자동 갱신 예정 (관리자 권한 부여 후)
+      youtubeVideoId: "ojc-12yd0rA", // ALL (생산기술팀) - watcher가 자동 갱신 예정 (관리자 권한 부여 후)
     },
   },
 };
