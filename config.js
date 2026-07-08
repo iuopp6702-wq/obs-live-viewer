@@ -1,31 +1,24 @@
 window.LIVE_CONFIG = {
-  // 처음 들어왔을 때 보여줄 채널
   defaultChannel: "all",
-
-  // 링크 공유용 접근 코드 (빈 문자열 "" 이면 코드 없이 누구나 접근)
-  // 공유 주소 예: https://사이트주소/?key=ccb1234
   accessKey: "ccb1234",
 
+  // 유튜브 라이브 제목 기준 매핑 (2026-07-08 확인)
   channels: {
-    // 1번 링크
     yeoju: {
       label: "여주",
-      youtubeVideoId: "sq3nhsPl9XQ",
+      youtubeVideoId: "qMhJU-CCgb4", // CCB여주 실시간
     },
-    // 2번 링크
     yangsan: {
       label: "양산",
-      youtubeVideoId: "qMhJU-CCgb4",
+      youtubeVideoId: "VYKCLaB4Ozs", // CCB양산 실시간
     },
-    // 3번 링크
     gwangju: {
       label: "광주",
-      youtubeVideoId: "VYKCLaB4Ozs",
+      youtubeVideoId: "sYgkvIP-TOA", // CCB광주 실시간
     },
-    // 4번 링크
     all: {
       label: "전체",
-      youtubeVideoId: "sYgkvIP-TOA",
+      youtubeVideoId: "sq3nhsPl9XQ", // ALL
     },
   },
 };

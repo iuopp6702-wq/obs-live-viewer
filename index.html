@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="robots" content="noindex, nofollow" />
   <title>검사기 라이브 뷰어</title>
   <script src="config.js"></script>
@@ -13,7 +13,8 @@
       --text: #f4f7fb;
       --muted: #9aa7b8;
       --accent-active: #7bc4ff;
-      --border: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.12);
+      --ui-z: 9999;
     }
 
     * { box-sizing: border-box; }
@@ -28,31 +29,10 @@
       font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
     }
 
-    .app {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      background: #000;
-    }
-
-    .player-wrap {
-      position: absolute;
-      inset: 0;
-      background: #000;
-    }
-
-    .player-wrap iframe {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-    }
-
     .gate {
       position: fixed;
       inset: 0;
-      z-index: 100;
+      z-index: calc(var(--ui-z) + 1);
       display: none;
       align-items: center;
       justify-content: center;
@@ -71,17 +51,8 @@
       text-align: center;
     }
 
-    .gate-card h1 {
-      margin: 0 0 8px;
-      font-size: 22px;
-    }
-
-    .gate-card p {
-      margin: 0 0 20px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.6;
-    }
+    .gate-card h1 { margin: 0 0 8px; font-size: 22px; }
+    .gate-card p { margin: 0 0 20px; color: var(--muted); font-size: 14px; }
 
     .gate-card input {
       width: 100%;
@@ -113,17 +84,38 @@
       min-height: 18px;
     }
 
-    .overlay-top {
+    .app {
+      position: fixed;
+      inset: 0;
+      background: #000;
+    }
+
+    .app.is-hidden { display: none; }
+
+    .player-wrap {
       position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .player-wrap iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+
+    .overlay-top {
+      position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      z-index: 10;
+      z-index: var(--ui-z);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 18px 22px;
-      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.72), transparent);
+      padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent);
       pointer-events: none;
     }
 
@@ -133,9 +125,10 @@
       gap: 8px;
       padding: 8px 14px;
       border-radius: 999px;
-      background: rgba(20, 27, 36, 0.82);
+      background: rgba(20, 27, 36, 0.92);
       border: 1px solid var(--border);
       font-size: 14px;
+      font-weight: 700;
     }
 
     .live-dot {
@@ -155,54 +148,55 @@
     .hint { color: var(--muted); font-size: 13px; }
 
     .channel-bar {
-      position: absolute;
+      position: fixed;
       left: 50%;
-      bottom: 28px;
+      bottom: max(16px, env(safe-area-inset-bottom));
       transform: translateX(-50%);
-      z-index: 20;
+      z-index: var(--ui-z);
       display: flex;
-      gap: 10px;
+      gap: 8px;
       padding: 10px;
       border-radius: 18px;
-      background: rgba(11, 15, 20, 0.82);
+      background: rgba(11, 15, 20, 0.95);
       border: 1px solid var(--border);
       backdrop-filter: blur(14px);
-      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.5);
+      pointer-events: auto;
     }
 
     .channel-btn {
-      min-width: 92px;
-      padding: 14px 20px;
+      min-width: 88px;
+      padding: 16px 18px;
       border: 1px solid transparent;
       border-radius: 12px;
       background: var(--panel);
       color: var(--text);
-      font-size: 16px;
-      font-weight: 700;
+      font-size: 17px;
+      font-weight: 800;
       cursor: pointer;
-      transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-    }
-
-    .channel-btn:hover {
-      background: #1b2430;
-      transform: translateY(-1px);
+      touch-action: manipulation;
     }
 
     .channel-btn.active {
-      background: rgba(77, 163, 255, 0.16);
-      border-color: rgba(123, 196, 255, 0.55);
+      background: rgba(77, 163, 255, 0.2);
+      border-color: rgba(123, 196, 255, 0.7);
       color: var(--accent-active);
     }
 
     @media (max-width: 720px) {
       .channel-bar {
-        left: 12px;
-        right: 12px;
+        left: 8px;
+        right: 8px;
         transform: none;
-        flex-wrap: wrap;
-        justify-content: center;
+        width: calc(100% - 16px);
+        justify-content: stretch;
       }
-      .channel-btn { min-width: calc(50% - 8px); }
+      .channel-btn {
+        flex: 1;
+        min-width: 0;
+        padding: 14px 8px;
+        font-size: 15px;
+      }
       .hint { display: none; }
     }
   </style>
@@ -211,14 +205,14 @@
   <div class="gate" id="gate">
     <div class="gate-card">
       <h1>검사기 라이브</h1>
-      <p>공유받은 접근 코드를 입력하세요.</p>
+      <p>접근 코드를 입력하세요.</p>
       <input id="gateInput" type="password" placeholder="접근 코드" autocomplete="off" />
       <button type="button" id="gateSubmit">입장</button>
       <div class="gate-error" id="gateError"></div>
     </div>
   </div>
 
-  <div class="app" id="app" hidden>
+  <div class="app is-hidden" id="app">
     <div class="player-wrap">
       <iframe
         id="liveFrame"
@@ -234,19 +228,16 @@
         <span class="live-dot"></span>
         <span id="currentLabel">전체</span>
       </div>
-      <div class="hint">1 여주 · 2 양산 · 3 광주 · 4 전체</div>
+      <div class="hint" id="hint"></div>
     </div>
 
-    <nav class="channel-bar" aria-label="공장 선택">
-      <button class="channel-btn" data-channel="yeoju">여주</button>
-      <button class="channel-btn" data-channel="yangsan">양산</button>
-      <button class="channel-btn" data-channel="gwangju">광주</button>
-      <button class="channel-btn" data-channel="all">전체</button>
-    </nav>
+    <nav class="channel-bar" id="channelBar" aria-label="공장 선택"></nav>
   </div>
 
   <script>
     const { channels, defaultChannel, accessKey = "" } = window.LIVE_CONFIG;
+    const channelOrder = Object.keys(channels);
+
     const gate = document.getElementById("gate");
     const gateInput = document.getElementById("gateInput");
     const gateSubmit = document.getElementById("gateSubmit");
@@ -254,10 +245,24 @@
     const app = document.getElementById("app");
     const iframe = document.getElementById("liveFrame");
     const currentLabel = document.getElementById("currentLabel");
-    const buttons = [...document.querySelectorAll(".channel-btn")];
-
-    const channelOrder = ["yeoju", "yangsan", "gwangju", "all"];
+    const hint = document.getElementById("hint");
+    const channelBar = document.getElementById("channelBar");
     const STORAGE_KEY = "live-viewer-access";
+
+    let viewerReady = false;
+
+    hint.textContent = channelOrder
+      .map((key, i) => `${i + 1} ${channels[key].label}`)
+      .join(" · ");
+
+    channelBar.innerHTML = channelOrder
+      .map(
+        (key) =>
+          `<button class="channel-btn" type="button" data-channel="${key}">${channels[key].label}</button>`
+      )
+      .join("");
+
+    const buttons = [...document.querySelectorAll(".channel-btn")];
 
     function embedUrl(videoId) {
       return (
@@ -279,14 +284,14 @@
 
     function showGate() {
       gate.classList.add("visible");
-      app.hidden = true;
+      app.classList.add("is-hidden");
       gateInput.focus();
     }
 
     function showApp() {
       gate.classList.remove("visible");
-      app.hidden = false;
-      initViewer();
+      app.classList.remove("is-hidden");
+      if (!viewerReady) initViewer();
     }
 
     function tryAccess(value) {
@@ -299,16 +304,16 @@
     }
 
     gateSubmit.addEventListener("click", () => tryAccess(gateInput.value.trim()));
-    gateInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") tryAccess(gateInput.value.trim());
+    gateInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") tryAccess(gateInput.value.trim());
     });
 
     function setChannel(channelKey) {
       const channel = channels[channelKey];
       if (!channel) return;
 
-      buttons.forEach((button) => {
-        button.classList.toggle("active", button.dataset.channel === channelKey);
+      buttons.forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.channel === channelKey);
       });
       currentLabel.textContent = channel.label;
 
@@ -321,12 +326,14 @@
     }
 
     function initViewer() {
-      buttons.forEach((button) => {
-        button.addEventListener("click", () => setChannel(button.dataset.channel));
+      viewerReady = true;
+
+      buttons.forEach((btn) => {
+        btn.addEventListener("click", () => setChannel(btn.dataset.channel));
       });
 
-      window.addEventListener("keydown", (event) => {
-        const index = Number(event.key) - 1;
+      window.addEventListener("keydown", (e) => {
+        const index = Number(e.key) - 1;
         if (index >= 0 && index < channelOrder.length) {
           setChannel(channelOrder[index]);
         }
@@ -335,16 +342,13 @@
       const initial =
         new URLSearchParams(location.search).get("ch") ||
         defaultChannel ||
-        "all";
+        channelOrder[0];
 
-      setChannel(channels[initial] ? initial : "all");
+      setChannel(channels[initial] ? initial : channelOrder[0]);
     }
 
-    if (isAccessGranted()) {
-      showApp();
-    } else {
-      showGate();
-    }
+    if (isAccessGranted()) showApp();
+    else showGate();
   </script>
 </body>
 </html>
