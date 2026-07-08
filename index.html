@@ -235,8 +235,10 @@
   </div>
 
   <script>
-    const { channels, defaultChannel, accessKey = "" } = window.LIVE_CONFIG;
+    let { channels, defaultChannel, accessKey = "" } = window.LIVE_CONFIG;
     const channelOrder = Object.keys(channels);
+    const CONFIG_POLL_MS = 15000;
+    let currentChannelKey = null;
 
     const gate = document.getElementById("gate");
     const gateInput = document.getElementById("gateInput");
@@ -321,6 +323,8 @@
       const channel = channels[channelKey];
       if (!channel) return;
 
+      currentChannelKey = channelKey;
+
       buttons.forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.channel === channelKey);
       });
@@ -332,6 +336,40 @@
       history.replaceState(null, "", "?" + params.toString());
 
       iframe.src = embedUrl(channel);
+    }
+
+    // Live streams get a fresh video ID whenever the encoder reconnects and a
+    // new broadcast starts. A background watcher keeps config.js up to date
+    // automatically, but a tab left open would otherwise keep showing the
+    // ended broadcast until manually reloaded. So we poll config.js in the
+    // background and hot-swap the iframe when the active channel's video
+    // actually changes - no manual refresh needed.
+    async function fetchLatestConfig() {
+      const res = await fetch("config.js?_=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error("config.js fetch failed: " + res.status);
+      const text = await res.text();
+      const sandbox = {};
+      new Function("window", text)(sandbox);
+      if (!sandbox.LIVE_CONFIG) throw new Error("LIVE_CONFIG missing in fetched config.js");
+      return sandbox.LIVE_CONFIG;
+    }
+
+    function pollForConfigUpdates() {
+      setInterval(async () => {
+        try {
+          const fresh = await fetchLatestConfig();
+          channels = fresh.channels;
+          if (!currentChannelKey) return;
+          const freshChannel = channels[currentChannelKey];
+          if (!freshChannel) return;
+          const newUrl = embedUrl(freshChannel);
+          if (newUrl !== iframe.src) {
+            iframe.src = newUrl;
+          }
+        } catch (err) {
+          console.warn("config.js poll failed, will retry:", err);
+        }
+      }, CONFIG_POLL_MS);
     }
 
     function initViewer() {
@@ -354,6 +392,7 @@
         channelOrder[0];
 
       setChannel(channels[initial] ? initial : channelOrder[0]);
+      pollForConfigUpdates();
     }
 
     if (isAccessGranted()) showApp();
