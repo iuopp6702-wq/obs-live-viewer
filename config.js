@@ -10,7 +10,7 @@ window.LIVE_CONFIG = {
     },
     yangsan: {
       label: "양산",
-      youtubeVideoId: "9bLXAgE-0jE", // CCB양산 실시간 (인코더 연결 끊김, OBS 확인 필요)
+      youtubeVideoId: "yhG5cg7GDns", // CCB양산 실시간 (인코더 연결 끊김, OBS 확인 필요)
     },
     gwangju: {
       label: "광주",
