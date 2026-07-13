@@ -1,4 +1,7 @@
 window.LIVE_CONFIG = {
+  // 유튜브 영상 ID는 맥 watcher가 GitHub에 자동 갱신. 서버/담당자는 신경 안 써도 됨.
+  remoteConfigUrl:
+    "https://raw.githubusercontent.com/iuopp6702-wq/obs-live-viewer/main/config.js",
   defaultChannel: "all",
   accessKey: "ccb1234",
 
@@ -10,7 +13,7 @@ window.LIVE_CONFIG = {
     },
     yangsan: {
       label: "양산",
-      youtubeVideoId: "WoU-MfAKThI", // CCB양산 실시간 (인코더 연결 끊김, OBS 확인 필요)
+      youtubeVideoId: "l0HLdoe0OiE", // CCB양산 실시간 (인코더 연결 끊김, OBS 확인 필요)
     },
     gwangju: {
       label: "광주",
