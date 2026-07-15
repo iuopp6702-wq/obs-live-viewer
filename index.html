@@ -344,30 +344,77 @@
     // ended broadcast until manually reloaded. So we poll config.js in the
     // background and hot-swap the iframe when the active channel's video
     // actually changes - no manual refresh needed.
-    async function fetchLatestConfig() {
-      const res = await fetch("config.js?_=" + Date.now(), { cache: "no-store" });
-      if (!res.ok) throw new Error("config.js fetch failed: " + res.status);
-      const text = await res.text();
+    function parseConfigJs(text) {
       const sandbox = {};
       new Function("window", text)(sandbox);
       if (!sandbox.LIVE_CONFIG) throw new Error("LIVE_CONFIG missing in fetched config.js");
       return sandbox.LIVE_CONFIG;
     }
 
+    async function fetchLatestConfig() {
+      const remoteUrl = window.LIVE_CONFIG?.remoteConfigUrl;
+      const sources = [];
+      if (remoteUrl) {
+        sources.push(remoteUrl + (remoteUrl.includes("?") ? "&" : "?") + "_=" + Date.now());
+      }
+      sources.push("config.js?_=" + Date.now());
+
+      let lastError = null;
+      for (const url of sources) {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) throw new Error("fetch failed: " + res.status);
+          return parseConfigJs(await res.text());
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error("config.js fetch failed");
+    }
+
+    function embedIdentity(channel) {
+      if (!channel) return "";
+      if (channel.youtubeChannelId) return "ch:" + channel.youtubeChannelId;
+      return "vid:" + (channel.youtubeVideoId || "");
+    }
+
+    function currentEmbedIdentity() {
+      try {
+        const url = new URL(iframe.src);
+        const channelId = url.searchParams.get("channel");
+        if (channelId) return "ch:" + channelId;
+        const parts = url.pathname.split("/").filter(Boolean);
+        const videoId = parts[parts.length - 1] || "";
+        return videoId ? "vid:" + videoId : "";
+      } catch {
+        return "";
+      }
+    }
+
     function pollForConfigUpdates() {
+      // Overlapping polls + string-comparing iframe.src caused unnecessary
+      // YouTube reloads (YouTube rewrites the embed URL after load), which
+      // looked like a memory leak in long-lived viewer tabs.
+      let pollInFlight = false;
       setInterval(async () => {
+        if (pollInFlight) return;
+        pollInFlight = true;
         try {
           const fresh = await fetchLatestConfig();
           channels = fresh.channels;
+          if (fresh.remoteConfigUrl) {
+            window.LIVE_CONFIG.remoteConfigUrl = fresh.remoteConfigUrl;
+          }
           if (!currentChannelKey) return;
           const freshChannel = channels[currentChannelKey];
           if (!freshChannel) return;
-          const newUrl = embedUrl(freshChannel);
-          if (newUrl !== iframe.src) {
-            iframe.src = newUrl;
+          if (embedIdentity(freshChannel) !== currentEmbedIdentity()) {
+            iframe.src = embedUrl(freshChannel);
           }
         } catch (err) {
           console.warn("config.js poll failed, will retry:", err);
+        } finally {
+          pollInFlight = false;
         }
       }, CONFIG_POLL_MS);
     }
