@@ -242,7 +242,7 @@
     const CONFIG_POLL_MS = 5000;
     // Even when the video ID is unchanged, long-lived YouTube embeds can drift
     // behind the live edge. Force a remount periodically to re-sync realtime.
-    const LIVE_RESYNC_MS = 60000;
+    const LIVE_RESYNC_MS = 300000; // 5분마다 강제 재동기화
     const RECOVERY_RETRY_MS = 20000;
     let currentChannelKey = null;
     let activeEmbedIdentity = "";
