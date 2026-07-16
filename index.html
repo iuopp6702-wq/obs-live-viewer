@@ -243,16 +243,13 @@
     const RECOVERY_RETRY_MS = 20000;
     let currentChannelKey = null;
     let activeEmbedIdentity = "";
-    let ytPlayer = null;
-    let ytApiReady = false;
-    let ytApiLoading = false;
-    const ytApiWaiters = [];
 
     const gate = document.getElementById("gate");
     const gateInput = document.getElementById("gateInput");
     const gateSubmit = document.getElementById("gateSubmit");
     const gateError = document.getElementById("gateError");
     const app = document.getElementById("app");
+    const playerWrap = document.querySelector(".player-wrap");
     let iframe = document.getElementById("liveFrame");
     const currentLabel = document.getElementById("currentLabel");
     const hint = document.getElementById("hint");
@@ -334,61 +331,21 @@
       if (e.key === "Enter") tryAccess(gateInput.value.trim());
     });
 
-    function loadYtApi() {
-      if (ytApiReady || (window.YT && window.YT.Player)) {
-        ytApiReady = true;
-        return Promise.resolve();
-      }
-      if (ytApiLoading) {
-        return new Promise((resolve) => ytApiWaiters.push(resolve));
-      }
-      ytApiLoading = true;
-      return new Promise((resolve) => {
-        ytApiWaiters.push(resolve);
-        const prev = window.onYouTubeIframeAPIReady;
-        window.onYouTubeIframeAPIReady = function () {
-          if (typeof prev === "function") prev();
-          ytApiReady = true;
-          ytApiLoading = false;
-          while (ytApiWaiters.length) ytApiWaiters.shift()();
-        };
-        const tag = document.createElement("script");
-        tag.src = "https://www.youtube.com/iframe_api";
-        document.head.appendChild(tag);
-      });
-    }
-
-    function destroyPlayer() {
-      if (ytPlayer) {
-        try {
-          ytPlayer.destroy();
-        } catch (_) {}
-        ytPlayer = null;
-      }
-    }
-
     function remountIframe() {
-      destroyPlayer();
       const next = document.createElement("iframe");
       next.id = "liveFrame";
       next.title = "검사기 라이브";
       next.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
       next.setAttribute("allowfullscreen", "");
       next.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
-      iframe.replaceWith(next);
+      const current = document.getElementById("liveFrame") || iframe;
+      if (current && current.parentNode) {
+        current.replaceWith(next);
+      } else if (playerWrap) {
+        playerWrap.appendChild(next);
+      }
       iframe = next;
       return iframe;
-    }
-
-    function onPlayerStateChange(event) {
-      // 0 = ENDED — live broadcast finished; pull latest config and swap.
-      if (event && event.data === 0) {
-        recoverFromStaleStream("ended");
-      }
-    }
-
-    function onPlayerError() {
-      recoverFromStaleStream("error");
     }
 
     let recoveryTimer = null;
@@ -397,48 +354,55 @@
       console.warn("stream recovery:", reason);
       recoveryTimer = setTimeout(async () => {
         recoveryTimer = null;
-        const swapped = await syncFromLatestConfig();
+        const swapped = await syncFromLatestConfig({ force: true });
         if (!swapped) {
           // Watcher may not have published the new ID yet — retry soon.
-          setTimeout(() => {
-            activeEmbedIdentity = "";
-            syncFromLatestConfig();
-          }, RECOVERY_RETRY_MS);
+          setTimeout(() => syncFromLatestConfig({ force: true }), RECOVERY_RETRY_MS);
         }
       }, 1500);
     }
 
-    async function mountChannel(channel, { force = false } = {}) {
+    function listenForYoutubeEnded(frame) {
+      // Ask the embed to emit API events (ended / errors) via postMessage.
+      frame.addEventListener("load", () => {
+        try {
+          frame.contentWindow.postMessage(
+            JSON.stringify({ event: "listening", id: frame.id }),
+            "https://www.youtube.com"
+          );
+        } catch (_) {}
+      });
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.origin !== "https://www.youtube.com") return;
+      let data = event.data;
+      try {
+        if (typeof data === "string") data = JSON.parse(data);
+      } catch (_) {
+        return;
+      }
+      if (!data || typeof data !== "object") return;
+      // onStateChange: 0 = ended
+      if (data.event === "onStateChange" && data.info === 0) {
+        recoverFromStaleStream("ended");
+      }
+      if (data.event === "onError") {
+        recoverFromStaleStream("error");
+      }
+    });
+
+    function mountChannel(channel, { force = false } = {}) {
       if (!channel) return false;
       const identity = embedIdentity(channel);
       if (!force && identity && identity === activeEmbedIdentity) return false;
 
       activeEmbedIdentity = identity;
       remountIframe();
-
-      if (channel.youtubeVideoId && !channel.youtubeChannelId) {
-        await loadYtApi();
-        ytPlayer = new YT.Player(iframe.id, {
-          videoId: channel.youtubeVideoId,
-          playerVars: {
-            autoplay: 1,
-            mute: 1,
-            controls: 1,
-            rel: 0,
-            modestbranding: 1,
-            playsinline: 1,
-            fs: 1,
-            origin: location.origin,
-          },
-          events: {
-            onStateChange: onPlayerStateChange,
-            onError: onPlayerError,
-          },
-        });
-      } else {
-        // Channel-based live embed fallback (no YT.Player videoId).
-        iframe.src = embedUrl(channel) + "&_=" + Date.now();
-      }
+      listenForYoutubeEnded(iframe);
+      // Plain embed URL — reliable for unlisted live streams.
+      // (YT.Player on an empty iframe was wiping #liveFrame and showing black.)
+      iframe.src = embedUrl(channel) + "&_=" + Date.now();
       return true;
     }
 
@@ -489,7 +453,7 @@
       throw lastError || new Error("config.js fetch failed");
     }
 
-    async function syncFromLatestConfig() {
+    async function syncFromLatestConfig({ force = false } = {}) {
       try {
         const fresh = await fetchLatestConfig();
         channels = fresh.channels;
@@ -499,7 +463,8 @@
         if (!currentChannelKey) return false;
         const freshChannel = channels[currentChannelKey];
         if (!freshChannel) return false;
-        return mountChannel(freshChannel);
+        if (force) activeEmbedIdentity = "";
+        return mountChannel(freshChannel, { force });
       } catch (err) {
         console.warn("config.js poll failed, will retry:", err);
         return false;
