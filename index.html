@@ -239,10 +239,14 @@
     const channelOrder = Object.keys(channels);
     // Keep this fairly short so long-lived / fullscreen tabs pick up new
     // live video IDs without anyone pressing refresh.
-    const CONFIG_POLL_MS = 10000;
+    const CONFIG_POLL_MS = 5000;
+    // Even when the video ID is unchanged, long-lived YouTube embeds can drift
+    // behind the live edge. Force a remount periodically to re-sync realtime.
+    const LIVE_RESYNC_MS = 60000;
     const RECOVERY_RETRY_MS = 20000;
     let currentChannelKey = null;
     let activeEmbedIdentity = "";
+    let lastMountedAt = 0;
 
     const gate = document.getElementById("gate");
     const gateInput = document.getElementById("gateInput");
@@ -398,6 +402,7 @@
       if (!force && identity && identity === activeEmbedIdentity) return false;
 
       activeEmbedIdentity = identity;
+      lastMountedAt = Date.now();
       remountIframe();
       listenForYoutubeEnded(iframe);
       // Plain embed URL — reliable for unlisted live streams.
@@ -463,8 +468,17 @@
         if (!currentChannelKey) return false;
         const freshChannel = channels[currentChannelKey];
         if (!freshChannel) return false;
-        if (force) activeEmbedIdentity = "";
-        return mountChannel(freshChannel, { force });
+
+        const identity = embedIdentity(freshChannel);
+        const idChanged = identity && identity !== activeEmbedIdentity;
+        const dueForResync =
+          !!activeEmbedIdentity && Date.now() - lastMountedAt >= LIVE_RESYNC_MS;
+
+        if (force || idChanged || dueForResync) {
+          if (force || dueForResync) activeEmbedIdentity = "";
+          return mountChannel(freshChannel, { force: true });
+        }
+        return false;
       } catch (err) {
         console.warn("config.js poll failed, will retry:", err);
         return false;
