@@ -237,15 +237,23 @@
   <script>
     let { channels, defaultChannel, accessKey = "" } = window.LIVE_CONFIG;
     const channelOrder = Object.keys(channels);
-    const CONFIG_POLL_MS = 15000;
+    // Keep this fairly short so long-lived / fullscreen tabs pick up new
+    // live video IDs without anyone pressing refresh.
+    const CONFIG_POLL_MS = 10000;
+    const RECOVERY_RETRY_MS = 20000;
     let currentChannelKey = null;
+    let activeEmbedIdentity = "";
+    let ytPlayer = null;
+    let ytApiReady = false;
+    let ytApiLoading = false;
+    const ytApiWaiters = [];
 
     const gate = document.getElementById("gate");
     const gateInput = document.getElementById("gateInput");
     const gateSubmit = document.getElementById("gateSubmit");
     const gateError = document.getElementById("gateError");
     const app = document.getElementById("app");
-    const iframe = document.getElementById("liveFrame");
+    let iframe = document.getElementById("liveFrame");
     const currentLabel = document.getElementById("currentLabel");
     const hint = document.getElementById("hint");
     const channelBar = document.getElementById("channelBar");
@@ -266,9 +274,16 @@
 
     const buttons = [...document.querySelectorAll(".channel-btn")];
 
+    function embedIdentity(channel) {
+      if (!channel) return "";
+      if (channel.youtubeChannelId) return "ch:" + channel.youtubeChannelId;
+      return "vid:" + (channel.youtubeVideoId || "");
+    }
+
     function embedUrl(channel) {
-      const params = "?autoplay=1&mute=1&controls=1&rel=0&modestbranding=1&playsinline=1&fs=1";
-      // 채널 ID가 있으면 '현재 라이브 중인 영상'을 자동으로 찾아 재생 (영상 ID가 바뀌어도 갱신 불필요)
+      const params =
+        "?autoplay=1&mute=1&controls=1&rel=0&modestbranding=1&playsinline=1&fs=1&enablejsapi=1&origin=" +
+        encodeURIComponent(location.origin);
       if (channel.youtubeChannelId) {
         return (
           "https://www.youtube.com/embed/live_stream?channel=" +
@@ -319,7 +334,115 @@
       if (e.key === "Enter") tryAccess(gateInput.value.trim());
     });
 
-    function setChannel(channelKey) {
+    function loadYtApi() {
+      if (ytApiReady || (window.YT && window.YT.Player)) {
+        ytApiReady = true;
+        return Promise.resolve();
+      }
+      if (ytApiLoading) {
+        return new Promise((resolve) => ytApiWaiters.push(resolve));
+      }
+      ytApiLoading = true;
+      return new Promise((resolve) => {
+        ytApiWaiters.push(resolve);
+        const prev = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = function () {
+          if (typeof prev === "function") prev();
+          ytApiReady = true;
+          ytApiLoading = false;
+          while (ytApiWaiters.length) ytApiWaiters.shift()();
+        };
+        const tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+      });
+    }
+
+    function destroyPlayer() {
+      if (ytPlayer) {
+        try {
+          ytPlayer.destroy();
+        } catch (_) {}
+        ytPlayer = null;
+      }
+    }
+
+    function remountIframe() {
+      destroyPlayer();
+      const next = document.createElement("iframe");
+      next.id = "liveFrame";
+      next.title = "검사기 라이브";
+      next.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      next.setAttribute("allowfullscreen", "");
+      next.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+      iframe.replaceWith(next);
+      iframe = next;
+      return iframe;
+    }
+
+    function onPlayerStateChange(event) {
+      // 0 = ENDED — live broadcast finished; pull latest config and swap.
+      if (event && event.data === 0) {
+        recoverFromStaleStream("ended");
+      }
+    }
+
+    function onPlayerError() {
+      recoverFromStaleStream("error");
+    }
+
+    let recoveryTimer = null;
+    function recoverFromStaleStream(reason) {
+      if (recoveryTimer) return;
+      console.warn("stream recovery:", reason);
+      recoveryTimer = setTimeout(async () => {
+        recoveryTimer = null;
+        const swapped = await syncFromLatestConfig();
+        if (!swapped) {
+          // Watcher may not have published the new ID yet — retry soon.
+          setTimeout(() => {
+            activeEmbedIdentity = "";
+            syncFromLatestConfig();
+          }, RECOVERY_RETRY_MS);
+        }
+      }, 1500);
+    }
+
+    async function mountChannel(channel, { force = false } = {}) {
+      if (!channel) return false;
+      const identity = embedIdentity(channel);
+      if (!force && identity && identity === activeEmbedIdentity) return false;
+
+      activeEmbedIdentity = identity;
+      remountIframe();
+
+      if (channel.youtubeVideoId && !channel.youtubeChannelId) {
+        await loadYtApi();
+        ytPlayer = new YT.Player(iframe.id, {
+          videoId: channel.youtubeVideoId,
+          playerVars: {
+            autoplay: 1,
+            mute: 1,
+            controls: 1,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            fs: 1,
+            origin: location.origin,
+          },
+          events: {
+            onStateChange: onPlayerStateChange,
+            onError: onPlayerError,
+          },
+        });
+      } else {
+        // Channel-based live embed fallback (no YT.Player videoId).
+        iframe.src = embedUrl(channel) + "&_=" + Date.now();
+      }
+      return true;
+    }
+
+    function setChannel(channelKey, { force = false } = {}) {
       const channel = channels[channelKey];
       if (!channel) return;
 
@@ -335,15 +458,9 @@
       if (accessKey) params.set("key", accessKey);
       history.replaceState(null, "", "?" + params.toString());
 
-      iframe.src = embedUrl(channel);
+      mountChannel(channel, { force });
     }
 
-    // Live streams get a fresh video ID whenever the encoder reconnects and a
-    // new broadcast starts. A background watcher keeps config.js up to date
-    // automatically, but a tab left open would otherwise keep showing the
-    // ended broadcast until manually reloaded. So we poll config.js in the
-    // background and hot-swap the iframe when the active channel's video
-    // actually changes - no manual refresh needed.
     function parseConfigJs(text) {
       const sandbox = {};
       new Function("window", text)(sandbox);
@@ -372,51 +489,43 @@
       throw lastError || new Error("config.js fetch failed");
     }
 
-    function embedIdentity(channel) {
-      if (!channel) return "";
-      if (channel.youtubeChannelId) return "ch:" + channel.youtubeChannelId;
-      return "vid:" + (channel.youtubeVideoId || "");
-    }
-
-    function currentEmbedIdentity() {
+    async function syncFromLatestConfig() {
       try {
-        const url = new URL(iframe.src);
-        const channelId = url.searchParams.get("channel");
-        if (channelId) return "ch:" + channelId;
-        const parts = url.pathname.split("/").filter(Boolean);
-        const videoId = parts[parts.length - 1] || "";
-        return videoId ? "vid:" + videoId : "";
-      } catch {
-        return "";
+        const fresh = await fetchLatestConfig();
+        channels = fresh.channels;
+        if (fresh.remoteConfigUrl) {
+          window.LIVE_CONFIG.remoteConfigUrl = fresh.remoteConfigUrl;
+        }
+        if (!currentChannelKey) return false;
+        const freshChannel = channels[currentChannelKey];
+        if (!freshChannel) return false;
+        return mountChannel(freshChannel);
+      } catch (err) {
+        console.warn("config.js poll failed, will retry:", err);
+        return false;
       }
     }
 
     function pollForConfigUpdates() {
-      // Overlapping polls + string-comparing iframe.src caused unnecessary
-      // YouTube reloads (YouTube rewrites the embed URL after load), which
-      // looked like a memory leak in long-lived viewer tabs.
       let pollInFlight = false;
-      setInterval(async () => {
+      const tick = async () => {
         if (pollInFlight) return;
         pollInFlight = true;
         try {
-          const fresh = await fetchLatestConfig();
-          channels = fresh.channels;
-          if (fresh.remoteConfigUrl) {
-            window.LIVE_CONFIG.remoteConfigUrl = fresh.remoteConfigUrl;
-          }
-          if (!currentChannelKey) return;
-          const freshChannel = channels[currentChannelKey];
-          if (!freshChannel) return;
-          if (embedIdentity(freshChannel) !== currentEmbedIdentity()) {
-            iframe.src = embedUrl(freshChannel);
-          }
-        } catch (err) {
-          console.warn("config.js poll failed, will retry:", err);
+          await syncFromLatestConfig();
         } finally {
           pollInFlight = false;
         }
-      }, CONFIG_POLL_MS);
+      };
+
+      tick();
+      setInterval(tick, CONFIG_POLL_MS);
+
+      // Background tabs get throttled timers — catch up as soon as visible again.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") tick();
+      });
+      window.addEventListener("focus", tick);
     }
 
     function initViewer() {
