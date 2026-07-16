@@ -278,9 +278,9 @@
     }
 
     function embedUrl(channel) {
-      const params =
-        "?autoplay=1&mute=1&controls=1&rel=0&modestbranding=1&playsinline=1&fs=1&enablejsapi=1&origin=" +
-        encodeURIComponent(location.origin);
+      // Keep embed params minimal — extra enablejsapi/origin flags have caused
+      // YouTube "Error 153" player configuration failures for some viewers.
+      const params = "?autoplay=1&mute=1&controls=1&rel=0&modestbranding=1&playsinline=1&fs=1";
       if (channel.youtubeChannelId) {
         return (
           "https://www.youtube.com/embed/live_stream?channel=" +
