@@ -17,7 +17,7 @@ window.LIVE_CONFIG = {
     },
     gwangju: {
       label: "광주",
-      youtubeVideoId: "ZJ2-Uhx-N_Q", // CCB광주 실시간 스트림
+      youtubeVideoId: "u0AvT6-mNh4", // CCB광주 실시간 스트림
     },
     all: {
       label: "전체",
