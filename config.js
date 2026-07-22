@@ -9,7 +9,7 @@ window.LIVE_CONFIG = {
   channels: {
     yeoju: {
       label: "여주",
-      youtubeVideoId: "zBDAIw9Rq3U", // CCB여주 실시간 (현재 신규 라이브 없음, 확인 필요)
+      youtubeVideoId: "-xEQS3aM-z4", // CCB여주 실시간 (현재 신규 라이브 없음, 확인 필요)
     },
     yangsan: {
       label: "양산",
