@@ -8,9 +8,9 @@ window.LIVE_CONFIG = {
   // 허브 직결 우선 (같은 PC / Tailscale). 닿으면 /viewer 로 이동, 안 되면 유튜브.
   preferHub: true,
   hubBaseUrls: [
-    "https://desktop-lvk845s.tailef62c9.ts.net",
     "http://127.0.0.1:8787",
     "http://100.85.85.4:8787",
+    "https://desktop-lvk845s.tailef62c9.ts.net",
   ],
 
   // 유튜브 라이브 제목 기준 매핑 (외부/폴백용)
