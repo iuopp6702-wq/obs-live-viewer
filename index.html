@@ -12,9 +12,7 @@
       --panel: #141b24;
       --text: #f4f7fb;
       --muted: #9aa7b8;
-      --accent-active: #7bc4ff;
       --border: rgba(255, 255, 255, 0.12);
-      --ui-z: 9999;
     }
     * { box-sizing: border-box; }
     html, body {
@@ -23,7 +21,7 @@
       font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
     }
     .gate {
-      position: fixed; inset: 0; z-index: calc(var(--ui-z) + 1);
+      position: fixed; inset: 0; z-index: 20;
       display: none; align-items: center; justify-content: center;
       background: var(--bg); padding: 24px;
     }
@@ -46,66 +44,9 @@
     .gate-error { margin-top: 10px; color: #ff6b6b; font-size: 13px; min-height: 18px; }
     .app { position: fixed; inset: 0; background: #000; }
     .app.is-hidden { display: none; }
-    .player-wrap { position: absolute; inset: 0; z-index: 1; background: #000; }
-    .grid { width: 100%; height: 100%; display: grid; gap: 2px; background: #000; }
-    .cell { position: relative; min-width: 0; min-height: 0; background: #111; overflow: hidden; }
-    .cell img {
+    #liveFrame {
       position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: contain; display: block; background: #000;
-    }
-    .cell .lb {
-      position: absolute; left: 0; right: 0; top: 0; z-index: 2; padding: 6px 8px;
-      font-size: 12px; font-weight: 700;
-      background: linear-gradient(rgba(0,0,0,.75), transparent);
-      pointer-events: none;
-    }
-    .overlay-top {
-      position: fixed; top: 0; left: 0; right: 0; z-index: var(--ui-z);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: max(12px, env(safe-area-inset-top)) 16px 12px;
-      background: linear-gradient(to bottom, rgba(0,0,0,.85), transparent);
-      pointer-events: none;
-    }
-    .badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 8px 14px; border-radius: 999px;
-      background: rgba(20, 27, 36, 0.92); border: 1px solid var(--border);
-      font-size: 14px; font-weight: 700;
-    }
-    .live-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: #ff4d4f;
-      box-shadow: 0 0 12px rgba(255, 77, 79, 0.8);
-      animation: pulse 1.4s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.45; }
-    }
-    .hint { color: var(--muted); font-size: 13px; }
-    .channel-bar {
-      position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom));
-      transform: translateX(-50%); z-index: var(--ui-z);
-      display: flex; gap: 8px; padding: 10px; border-radius: 18px;
-      background: rgba(11, 15, 20, 0.95); border: 1px solid var(--border);
-      backdrop-filter: blur(14px); box-shadow: 0 16px 50px rgba(0,0,0,.5);
-      pointer-events: auto;
-    }
-    .channel-btn {
-      min-width: 88px; padding: 16px 18px; border: 1px solid transparent;
-      border-radius: 12px; background: var(--panel); color: var(--text);
-      font-size: 17px; font-weight: 800; cursor: pointer; touch-action: manipulation;
-    }
-    .channel-btn.active {
-      background: rgba(77, 163, 255, 0.2);
-      border-color: rgba(123, 196, 255, 0.7);
-      color: var(--accent-active);
-    }
-    @media (max-width: 720px) {
-      .channel-bar {
-        left: 8px; right: 8px; transform: none; width: calc(100% - 16px);
-      }
-      .channel-btn { flex: 1; min-width: 0; padding: 14px 8px; font-size: 15px; }
-      .hint { display: none; }
+      border: 0; background: #000; display: block;
     }
   </style>
 </head>
@@ -121,49 +62,25 @@
   </div>
 
   <div class="app is-hidden" id="app">
-    <div class="player-wrap"><div class="grid" id="grid"></div></div>
-    <div class="overlay-top">
-      <div class="badge">
-        <span class="live-dot"></span>
-        <span id="currentLabel">전체</span>
-      </div>
-      <div class="hint" id="hint">허브 직결</div>
-    </div>
-    <nav class="channel-bar" id="channelBar" aria-label="공장 선택"></nav>
+    <iframe id="liveFrame" title="검사기 라이브" allow="fullscreen" allowfullscreen></iframe>
   </div>
 
   <script>
+    /**
+     * GitHub Pages 는 껍데기만 담당.
+     * 실제 연속 화면은 허브 /viewer 를 iframe 으로 띄움 (허브 뷰어와 동일하게 움직임).
+     */
     const STORAGE_KEY = "live-viewer-access";
-    const POLL_MS = 120;
     let cfg = window.LIVE_CONFIG || {};
     let accessKey = cfg.accessKey || "";
     let hubBase = "";
-    let channels = {};
-    let channelOrder = [];
-    let viewerReady = false;
-    let pollTimer = null;
-    let pollImgs = [];
-    let remountTimer = null;
 
     const gate = document.getElementById("gate");
     const gateInput = document.getElementById("gateInput");
     const gateSubmit = document.getElementById("gateSubmit");
     const gateError = document.getElementById("gateError");
     const app = document.getElementById("app");
-    const grid = document.getElementById("grid");
-    const currentLabel = document.getElementById("currentLabel");
-    const hint = document.getElementById("hint");
-    const channelBar = document.getElementById("channelBar");
-
-    function layoutCols(n) {
-      if (n <= 1) return 1;
-      if (n === 2) return 2;
-      if (n <= 4) return 2;
-      return 4;
-    }
-    function layoutRows(n, cols) {
-      return Math.max(1, Math.ceil(n / cols));
-    }
+    const liveFrame = document.getElementById("liveFrame");
 
     function isAccessGranted() {
       if (!accessKey) return true;
@@ -180,11 +97,24 @@
       app.classList.add("is-hidden");
       gateInput.focus();
     }
+
+    function viewerUrl() {
+      const params = new URLSearchParams(location.search);
+      const ch = params.get("ch") || cfg.defaultChannel || "all";
+      const q = new URLSearchParams();
+      if (accessKey) q.set("key", accessKey);
+      q.set("ch", ch);
+      // 캐시 방지
+      q.set("_", String(Date.now()));
+      return hubBase.replace(/\/$/, "") + "/viewer?" + q.toString();
+    }
+
     function showApp() {
       gate.classList.remove("visible");
       app.classList.remove("is-hidden");
-      if (!viewerReady) initViewer();
+      liveFrame.src = viewerUrl();
     }
+
     function tryAccess(value) {
       if (value === accessKey) {
         sessionStorage.setItem(STORAGE_KEY, accessKey);
@@ -193,145 +123,18 @@
       }
       gateError.textContent = "접근 코드가 올바르지 않습니다.";
     }
+
     gateSubmit.addEventListener("click", () => tryAccess(gateInput.value.trim()));
     gateInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") tryAccess(gateInput.value.trim());
     });
 
-    function stopPolling() {
-      if (pollTimer) clearInterval(pollTimer);
-      pollTimer = null;
-      if (remountTimer) clearInterval(remountTimer);
-      remountTimer = null;
-      pollImgs = [];
-    }
-
-    function tickFrames() {
-      const t = Date.now();
-      for (const item of pollImgs) {
-        if (!item.id || !item.img || item.busy) continue;
-        item.busy = true;
-        const url =
-          hubBase +
-          "/frame/" +
-          encodeURIComponent(item.id) +
-          "?t=" +
-          t +
-          "&r=" +
-          Math.random().toString(36).slice(2);
-        const done = () => {
-          item.busy = false;
-        };
-        item.img.onload = done;
-        item.img.onerror = done;
-        item.img.src = url;
-      }
-    }
-
-    function startPolling() {
-      stopPolling();
-      tickFrames();
-      pollTimer = setInterval(tickFrames, POLL_MS);
-      // 장시간 탭에서 캐시/연결 꼬임 방지
-      remountTimer = setInterval(() => {
-        for (const item of pollImgs) item.busy = false;
-        tickFrames();
-      }, 20000);
-    }
-
-    function mountChannel(channel) {
-      const agents = channel.agents || [];
-      const n = Math.max(agents.length, Number(channel.layout) || 1);
-      const cols = layoutCols(n);
-      const rows = layoutRows(n, cols);
-      grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-      grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-      grid.innerHTML = "";
-      pollImgs = [];
-
-      for (let i = 0; i < n; i++) {
-        const a = agents[i];
-        const cell = document.createElement("div");
-        cell.className = "cell";
-        if (a && a.id) {
-          const img = document.createElement("img");
-          img.alt = a.name || a.id;
-          img.decoding = "async";
-          img.src =
-            hubBase +
-            "/frame/" +
-            encodeURIComponent(a.id) +
-            "?t=" +
-            Date.now();
-          const lb = document.createElement("div");
-          lb.className = "lb";
-          lb.textContent = a.name || a.id;
-          cell.appendChild(img);
-          cell.appendChild(lb);
-          pollImgs.push({ id: a.id, img, busy: false });
-        } else {
-          const lb = document.createElement("div");
-          lb.className = "lb";
-          lb.textContent = "NO SIGNAL";
-          cell.appendChild(lb);
-        }
-        grid.appendChild(cell);
-      }
-      startPolling();
-    }
-
-    function setChannel(channelKey) {
-      const channel = channels[channelKey];
-      if (!channel) return;
-      [...document.querySelectorAll(".channel-btn")].forEach((btn) => {
-        btn.classList.toggle("active", btn.dataset.channel === channelKey);
-      });
-      currentLabel.textContent = channel.label;
-      const params = new URLSearchParams(location.search);
-      params.set("ch", channelKey);
-      if (accessKey) params.set("key", accessKey);
-      history.replaceState(null, "", "?" + params.toString());
-      mountChannel(channel);
-    }
-
-    function buildChrome() {
-      hint.textContent =
-        channelOrder.map((key, i) => `${i + 1} ${channels[key].label}`).join(" · ") +
-        " · 유튜브 없음";
-      channelBar.innerHTML = channelOrder
-        .map(
-          (key) =>
-            `<button class="channel-btn" type="button" data-channel="${key}">${channels[key].label}</button>`
-        )
-        .join("");
-      [...document.querySelectorAll(".channel-btn")].forEach((btn) => {
-        btn.addEventListener("click", () => setChannel(btn.dataset.channel));
-      });
-    }
-
-    function initViewer() {
-      viewerReady = true;
-      buildChrome();
-      window.addEventListener("keydown", (e) => {
-        const index = Number(e.key) - 1;
-        if (index >= 0 && index < channelOrder.length) setChannel(channelOrder[index]);
-      });
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") tickFrames();
-      });
-      const paramsCh = new URLSearchParams(location.search).get("ch");
-      const initial =
-        paramsCh ||
-        cfg.defaultChannel ||
-        (channelOrder.includes("all") ? "all" : channelOrder[0]);
-      setChannel(channels[initial] ? initial : channelOrder[0]);
-    }
-
     async function probeHub(base) {
       const root = String(base || "").replace(/\/$/, "");
       if (!root) return null;
+      if (location.protocol === "https:" && root.startsWith("http:")) return null;
       const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 4000);
+      const t = setTimeout(() => ctrl.abort(), 5000);
       try {
         const res = await fetch(root + "/api/viewer/channels", {
           cache: "no-store",
@@ -350,37 +153,60 @@
 
     async function resolveHub() {
       const bases = Array.isArray(cfg.hubBaseUrls) ? cfg.hubBaseUrls.slice() : [];
-      // http localhost only useful when page itself is http on same PC
+      // remote config 최신 터널 URL
+      try {
+        const remote = cfg.remoteConfigUrl;
+        if (remote) {
+          const res = await fetch(remote + (remote.includes("?") ? "&" : "?") + "_=" + Date.now(), {
+            cache: "no-store",
+          });
+          if (res.ok) {
+            const text = await res.text();
+            const sandbox = {};
+            new Function("window", text)(sandbox);
+            if (sandbox.LIVE_CONFIG?.hubBaseUrls) {
+              bases.unshift(...sandbox.LIVE_CONFIG.hubBaseUrls);
+            }
+            if (sandbox.LIVE_CONFIG?.accessKey) {
+              accessKey = sandbox.LIVE_CONFIG.accessKey;
+            }
+          }
+        }
+      } catch (_) {}
+
+      const seen = new Set();
       for (const base of bases) {
-        if (location.protocol === "https:" && String(base).startsWith("http:")) continue;
+        const key = String(base || "");
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
         const hit = await probeHub(base);
         if (hit) return hit;
       }
-      // last resort: try http localhost when opened somehow locally
-      return probeHub("http://127.0.0.1:8787");
+      return null;
     }
 
     async function boot() {
-      gateError.textContent = "허브 연결 중…";
       gate.classList.add("visible");
+      gateError.textContent = "허브 연결 중…";
       const hit = await resolveHub();
       if (!hit) {
         gateError.textContent =
-          "허브에 연결할 수 없습니다. 메인 PC에서 허브+공개터널이 켜져 있는지 확인하세요.";
+          "허브에 연결할 수 없습니다. 메인 PC에서 허브 + START_PUBLIC.bat(공개터널)이 켜져 있는지 확인하세요.";
         return;
       }
       hubBase = hit.root;
-      accessKey = hit.data.accessKey || cfg.accessKey || "";
-      channels = hit.data.channels || {};
-      channelOrder = hit.data.order || Object.keys(channels);
-      if (!channelOrder.length) {
-        gateError.textContent = "허브 채널 설정이 비어 있습니다.";
-        return;
-      }
+      accessKey = hit.data.accessKey || accessKey || cfg.accessKey || "";
       gateError.textContent = "";
       if (isAccessGranted()) showApp();
       else showGate();
     }
+
+    // ch 변경 시 iframe 갱신
+    window.addEventListener("popstate", () => {
+      if (hubBase && !app.classList.contains("is-hidden")) {
+        liveFrame.src = viewerUrl();
+      }
+    });
 
     boot();
   </script>
