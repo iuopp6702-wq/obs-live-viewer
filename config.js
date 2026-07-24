@@ -5,6 +5,6 @@
   accessKey: "ccb1234",
   mode: "hub",
   hubBaseUrls: [
-    "https://sunny-transition-era-committees.trycloudflare.com",
+    "https://recommend-pic-officer-relative.trycloudflare.com",
   ],
 };
