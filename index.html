@@ -530,8 +530,49 @@
       pollForConfigUpdates();
     }
 
-    if (isAccessGranted()) showApp();
-    else showGate();
+    async function tryHubRedirect() {
+      const cfg = window.LIVE_CONFIG || {};
+      const params = new URLSearchParams(location.search);
+      // ?yt=1 이면 유튜브 강제 (외부/폴백)
+      if (params.get("yt") === "1" || params.get("youtube") === "1") return false;
+      if (cfg.preferHub === false) return false;
+      const bases = Array.isArray(cfg.hubBaseUrls) ? cfg.hubBaseUrls : [];
+      if (!bases.length) return false;
+
+      const key = params.get("key") || cfg.accessKey || "";
+      const ch = params.get("ch") || cfg.defaultChannel || "all";
+
+      for (const base of bases) {
+        const root = String(base || "").replace(/\/$/, "");
+        if (!root) continue;
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 2500);
+          const res = await fetch(root + "/api/viewer/channels", {
+            cache: "no-store",
+            mode: "cors",
+            signal: ctrl.signal,
+          });
+          clearTimeout(t);
+          if (!res.ok) continue;
+          const q = new URLSearchParams();
+          if (key) q.set("key", key);
+          q.set("ch", ch);
+          location.replace(root + "/viewer?" + q.toString());
+          return true;
+        } catch (_) {
+          /* try next */
+        }
+      }
+      return false;
+    }
+
+    (async function boot() {
+      const redirected = await tryHubRedirect();
+      if (redirected) return;
+      if (isAccessGranted()) showApp();
+      else showGate();
+    })();
   </script>
 </body>
 </html>
