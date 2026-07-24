@@ -16,187 +16,95 @@
       --border: rgba(255, 255, 255, 0.12);
       --ui-z: 9999;
     }
-
     * { box-sizing: border-box; }
-
     html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-      color: var(--text);
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #000; color: var(--text);
       font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
     }
-
     .gate {
-      position: fixed;
-      inset: 0;
-      z-index: calc(var(--ui-z) + 1);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg);
-      padding: 24px;
+      position: fixed; inset: 0; z-index: calc(var(--ui-z) + 1);
+      display: none; align-items: center; justify-content: center;
+      background: var(--bg); padding: 24px;
     }
-
     .gate.visible { display: flex; }
-
     .gate-card {
-      width: min(100%, 380px);
-      padding: 32px 28px;
-      border-radius: 18px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      text-align: center;
+      width: min(100%, 380px); padding: 32px 28px; border-radius: 18px;
+      background: var(--panel); border: 1px solid var(--border); text-align: center;
     }
-
     .gate-card h1 { margin: 0 0 8px; font-size: 22px; }
     .gate-card p { margin: 0 0 20px; color: var(--muted); font-size: 14px; }
-
     .gate-card input {
-      width: 100%;
-      padding: 14px 16px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: #0b0f14;
-      color: var(--text);
-      font-size: 16px;
-      margin-bottom: 12px;
+      width: 100%; padding: 14px 16px; border-radius: 10px;
+      border: 1px solid var(--border); background: #0b0f14; color: var(--text);
+      font-size: 16px; margin-bottom: 12px;
     }
-
     .gate-card button {
-      width: 100%;
-      padding: 14px;
-      border: 0;
-      border-radius: 10px;
-      background: #2d7dd2;
-      color: #fff;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
+      width: 100%; padding: 14px; border: 0; border-radius: 10px;
+      background: #2d7dd2; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
     }
-
-    .gate-error {
-      margin-top: 10px;
-      color: #ff6b6b;
-      font-size: 13px;
-      min-height: 18px;
-    }
-
-    .app {
-      position: fixed;
-      inset: 0;
-      background: #000;
-    }
-
+    .gate-error { margin-top: 10px; color: #ff6b6b; font-size: 13px; min-height: 18px; }
+    .app { position: fixed; inset: 0; background: #000; }
     .app.is-hidden { display: none; }
-
-    .player-wrap {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
+    .player-wrap { position: absolute; inset: 0; z-index: 1; background: #000; }
+    .grid { width: 100%; height: 100%; display: grid; gap: 2px; background: #000; }
+    .cell { position: relative; min-width: 0; min-height: 0; background: #111; overflow: hidden; }
+    .cell img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: contain; display: block; background: #000;
     }
-
-    .player-wrap iframe {
-      width: 100%;
-      height: 100%;
-      border: 0;
-      display: block;
-    }
-
-    .overlay-top {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: var(--ui-z);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: max(12px, env(safe-area-inset-top)) 16px 12px;
-      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent);
+    .cell .lb {
+      position: absolute; left: 0; right: 0; top: 0; z-index: 2; padding: 6px 8px;
+      font-size: 12px; font-weight: 700;
+      background: linear-gradient(rgba(0,0,0,.75), transparent);
       pointer-events: none;
     }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      border-radius: 999px;
-      background: rgba(20, 27, 36, 0.92);
-      border: 1px solid var(--border);
-      font-size: 14px;
-      font-weight: 700;
+    .overlay-top {
+      position: fixed; top: 0; left: 0; right: 0; z-index: var(--ui-z);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+      background: linear-gradient(to bottom, rgba(0,0,0,.85), transparent);
+      pointer-events: none;
     }
-
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 999px;
+      background: rgba(20, 27, 36, 0.92); border: 1px solid var(--border);
+      font-size: 14px; font-weight: 700;
+    }
     .live-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #ff4d4f;
+      width: 8px; height: 8px; border-radius: 50%; background: #ff4d4f;
       box-shadow: 0 0 12px rgba(255, 77, 79, 0.8);
       animation: pulse 1.4s ease-in-out infinite;
     }
-
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.45; }
     }
-
     .hint { color: var(--muted); font-size: 13px; }
-
     .channel-bar {
-      position: fixed;
-      left: 50%;
-      bottom: max(16px, env(safe-area-inset-bottom));
-      transform: translateX(-50%);
-      z-index: var(--ui-z);
-      display: flex;
-      gap: 8px;
-      padding: 10px;
-      border-radius: 18px;
-      background: rgba(11, 15, 20, 0.95);
-      border: 1px solid var(--border);
-      backdrop-filter: blur(14px);
-      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.5);
+      position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom));
+      transform: translateX(-50%); z-index: var(--ui-z);
+      display: flex; gap: 8px; padding: 10px; border-radius: 18px;
+      background: rgba(11, 15, 20, 0.95); border: 1px solid var(--border);
+      backdrop-filter: blur(14px); box-shadow: 0 16px 50px rgba(0,0,0,.5);
       pointer-events: auto;
     }
-
     .channel-btn {
-      min-width: 88px;
-      padding: 16px 18px;
-      border: 1px solid transparent;
-      border-radius: 12px;
-      background: var(--panel);
-      color: var(--text);
-      font-size: 17px;
-      font-weight: 800;
-      cursor: pointer;
-      touch-action: manipulation;
+      min-width: 88px; padding: 16px 18px; border: 1px solid transparent;
+      border-radius: 12px; background: var(--panel); color: var(--text);
+      font-size: 17px; font-weight: 800; cursor: pointer; touch-action: manipulation;
     }
-
     .channel-btn.active {
       background: rgba(77, 163, 255, 0.2);
       border-color: rgba(123, 196, 255, 0.7);
       color: var(--accent-active);
     }
-
     @media (max-width: 720px) {
       .channel-bar {
-        left: 8px;
-        right: 8px;
-        transform: none;
-        width: calc(100% - 16px);
-        justify-content: stretch;
+        left: 8px; right: 8px; transform: none; width: calc(100% - 16px);
       }
-      .channel-btn {
-        flex: 1;
-        min-width: 0;
-        padding: 14px 8px;
-        font-size: 15px;
-      }
+      .channel-btn { flex: 1; min-width: 0; padding: 14px 8px; font-size: 15px; }
       .hint { display: none; }
     }
   </style>
@@ -213,90 +121,47 @@
   </div>
 
   <div class="app is-hidden" id="app">
-    <div class="player-wrap">
-      <iframe
-        id="liveFrame"
-        title="검사기 라이브"
-        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-        allowfullscreen
-        referrerpolicy="strict-origin-when-cross-origin"
-      ></iframe>
-    </div>
-
+    <div class="player-wrap"><div class="grid" id="grid"></div></div>
     <div class="overlay-top">
       <div class="badge">
         <span class="live-dot"></span>
         <span id="currentLabel">전체</span>
       </div>
-      <div class="hint" id="hint"></div>
+      <div class="hint" id="hint">허브 직결</div>
     </div>
-
     <nav class="channel-bar" id="channelBar" aria-label="공장 선택"></nav>
   </div>
 
   <script>
-    let { channels, defaultChannel, accessKey = "" } = window.LIVE_CONFIG;
-    const channelOrder = Object.keys(channels);
-    // Keep this fairly short so long-lived / fullscreen tabs pick up new
-    // live video IDs without anyone pressing refresh.
-    const CONFIG_POLL_MS = 5000;
-    // Even when the video ID is unchanged, long-lived YouTube embeds can drift
-    // behind the live edge. Force a remount periodically to re-sync realtime.
-    const LIVE_RESYNC_MS = 300000; // 5분마다 강제 재동기화
-    const RECOVERY_RETRY_MS = 20000;
-    let currentChannelKey = null;
-    let activeEmbedIdentity = "";
-    let lastMountedAt = 0;
+    const STORAGE_KEY = "live-viewer-access";
+    const POLL_MS = 300;
+    let cfg = window.LIVE_CONFIG || {};
+    let accessKey = cfg.accessKey || "";
+    let hubBase = "";
+    let channels = {};
+    let channelOrder = [];
+    let viewerReady = false;
+    let pollTimer = null;
+    let pollImgs = [];
 
     const gate = document.getElementById("gate");
     const gateInput = document.getElementById("gateInput");
     const gateSubmit = document.getElementById("gateSubmit");
     const gateError = document.getElementById("gateError");
     const app = document.getElementById("app");
-    const playerWrap = document.querySelector(".player-wrap");
-    let iframe = document.getElementById("liveFrame");
+    const grid = document.getElementById("grid");
     const currentLabel = document.getElementById("currentLabel");
     const hint = document.getElementById("hint");
     const channelBar = document.getElementById("channelBar");
-    const STORAGE_KEY = "live-viewer-access";
 
-    let viewerReady = false;
-
-    hint.textContent = channelOrder
-      .map((key, i) => `${i + 1} ${channels[key].label}`)
-      .join(" · ");
-
-    channelBar.innerHTML = channelOrder
-      .map(
-        (key) =>
-          `<button class="channel-btn" type="button" data-channel="${key}">${channels[key].label}</button>`
-      )
-      .join("");
-
-    const buttons = [...document.querySelectorAll(".channel-btn")];
-
-    function embedIdentity(channel) {
-      if (!channel) return "";
-      if (channel.youtubeChannelId) return "ch:" + channel.youtubeChannelId;
-      return "vid:" + (channel.youtubeVideoId || "");
+    function layoutCols(n) {
+      if (n <= 1) return 1;
+      if (n === 2) return 2;
+      if (n <= 4) return 2;
+      return 4;
     }
-
-    function embedUrl(channel) {
-      // Keep embed params minimal — extra enablejsapi/origin flags have caused
-      // YouTube "Error 153" player configuration failures for some viewers.
-      const params = "?autoplay=1&mute=1&controls=1&rel=0&modestbranding=1&playsinline=1&fs=1";
-      if (channel.youtubeChannelId) {
-        return (
-          "https://www.youtube.com/embed/live_stream?channel=" +
-          encodeURIComponent(channel.youtubeChannelId) +
-          params
-        );
-      }
-      return (
-        "https://www.youtube.com/embed/" +
-        encodeURIComponent(channel.youtubeVideoId) +
-        params
-      );
+    function layoutRows(n, cols) {
+      return Math.max(1, Math.ceil(n / cols));
     }
 
     function isAccessGranted() {
@@ -314,13 +179,11 @@
       app.classList.add("is-hidden");
       gateInput.focus();
     }
-
     function showApp() {
       gate.classList.remove("visible");
       app.classList.remove("is-hidden");
       if (!viewerReady) initViewer();
     }
-
     function tryAccess(value) {
       if (value === accessKey) {
         sessionStorage.setItem(STORAGE_KEY, accessKey);
@@ -329,280 +192,179 @@
       }
       gateError.textContent = "접근 코드가 올바르지 않습니다.";
     }
-
     gateSubmit.addEventListener("click", () => tryAccess(gateInput.value.trim()));
     gateInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") tryAccess(gateInput.value.trim());
     });
 
-    function remountIframe() {
-      const next = document.createElement("iframe");
-      next.id = "liveFrame";
-      next.title = "검사기 라이브";
-      next.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
-      next.setAttribute("allowfullscreen", "");
-      next.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
-      const current = document.getElementById("liveFrame") || iframe;
-      if (current && current.parentNode) {
-        current.replaceWith(next);
-      } else if (playerWrap) {
-        playerWrap.appendChild(next);
-      }
-      iframe = next;
-      return iframe;
+    function stopPolling() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = null;
+      pollImgs = [];
     }
 
-    let recoveryTimer = null;
-    function recoverFromStaleStream(reason) {
-      if (recoveryTimer) return;
-      console.warn("stream recovery:", reason);
-      recoveryTimer = setTimeout(async () => {
-        recoveryTimer = null;
-        const swapped = await syncFromLatestConfig({ force: true });
-        if (!swapped) {
-          // Watcher may not have published the new ID yet — retry soon.
-          setTimeout(() => syncFromLatestConfig({ force: true }), RECOVERY_RETRY_MS);
+    function tickFrames() {
+      const t = Date.now();
+      for (const item of pollImgs) {
+        if (!item.id || !item.img || item.busy) continue;
+        item.busy = true;
+        const url = hubBase + "/frame/" + encodeURIComponent(item.id) + "?t=" + t;
+        const probe = new Image();
+        probe.onload = () => {
+          item.img.src = url;
+          item.busy = false;
+        };
+        probe.onerror = () => {
+          item.busy = false;
+        };
+        probe.src = url;
+      }
+    }
+
+    function startPolling() {
+      stopPolling();
+      tickFrames();
+      pollTimer = setInterval(tickFrames, POLL_MS);
+    }
+
+    function mountChannel(channel) {
+      const agents = channel.agents || [];
+      const n = Math.max(agents.length, Number(channel.layout) || 1);
+      const cols = layoutCols(n);
+      const rows = layoutRows(n, cols);
+      grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+      grid.innerHTML = "";
+      pollImgs = [];
+
+      for (let i = 0; i < n; i++) {
+        const a = agents[i];
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        if (a && a.id) {
+          const img = document.createElement("img");
+          img.alt = a.name || a.id;
+          img.src = hubBase + "/frame/" + encodeURIComponent(a.id) + "?t=" + Date.now();
+          const lb = document.createElement("div");
+          lb.className = "lb";
+          lb.textContent = a.name || a.id;
+          cell.appendChild(img);
+          cell.appendChild(lb);
+          pollImgs.push({ id: a.id, img, busy: false });
+        } else {
+          const lb = document.createElement("div");
+          lb.className = "lb";
+          lb.textContent = "NO SIGNAL";
+          cell.appendChild(lb);
         }
-      }, 1500);
+        grid.appendChild(cell);
+      }
+      startPolling();
     }
 
-    function listenForYoutubeEnded(frame) {
-      // Ask the embed to emit API events (ended / errors) via postMessage.
-      frame.addEventListener("load", () => {
-        try {
-          frame.contentWindow.postMessage(
-            JSON.stringify({ event: "listening", id: frame.id }),
-            "https://www.youtube.com"
-          );
-        } catch (_) {}
-      });
-    }
-
-    window.addEventListener("message", (event) => {
-      if (event.origin !== "https://www.youtube.com") return;
-      let data = event.data;
-      try {
-        if (typeof data === "string") data = JSON.parse(data);
-      } catch (_) {
-        return;
-      }
-      if (!data || typeof data !== "object") return;
-      // onStateChange: 0 = ended
-      if (data.event === "onStateChange" && data.info === 0) {
-        recoverFromStaleStream("ended");
-      }
-      if (data.event === "onError") {
-        recoverFromStaleStream("error");
-      }
-    });
-
-    function mountChannel(channel, { force = false } = {}) {
-      if (!channel) return false;
-      const identity = embedIdentity(channel);
-      if (!force && identity && identity === activeEmbedIdentity) return false;
-
-      activeEmbedIdentity = identity;
-      lastMountedAt = Date.now();
-      remountIframe();
-      listenForYoutubeEnded(iframe);
-      // Plain embed URL — reliable for unlisted live streams.
-      // (YT.Player on an empty iframe was wiping #liveFrame and showing black.)
-      iframe.src = embedUrl(channel) + "&_=" + Date.now();
-      return true;
-    }
-
-    function setChannel(channelKey, { force = false } = {}) {
+    function setChannel(channelKey) {
       const channel = channels[channelKey];
       if (!channel) return;
-
-      currentChannelKey = channelKey;
-
-      buttons.forEach((btn) => {
+      [...document.querySelectorAll(".channel-btn")].forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.channel === channelKey);
       });
       currentLabel.textContent = channel.label;
-
       const params = new URLSearchParams(location.search);
       params.set("ch", channelKey);
       if (accessKey) params.set("key", accessKey);
       history.replaceState(null, "", "?" + params.toString());
-
-      mountChannel(channel, { force });
+      mountChannel(channel);
     }
 
-    function parseConfigJs(text) {
-      const sandbox = {};
-      new Function("window", text)(sandbox);
-      if (!sandbox.LIVE_CONFIG) throw new Error("LIVE_CONFIG missing in fetched config.js");
-      return sandbox.LIVE_CONFIG;
-    }
-
-    async function fetchLatestConfig() {
-      const remoteUrl = window.LIVE_CONFIG?.remoteConfigUrl;
-      const sources = [];
-      if (remoteUrl) {
-        sources.push(remoteUrl + (remoteUrl.includes("?") ? "&" : "?") + "_=" + Date.now());
-      }
-      sources.push("config.js?_=" + Date.now());
-
-      let lastError = null;
-      for (const url of sources) {
-        try {
-          const res = await fetch(url, { cache: "no-store" });
-          if (!res.ok) throw new Error("fetch failed: " + res.status);
-          return parseConfigJs(await res.text());
-        } catch (err) {
-          lastError = err;
-        }
-      }
-      throw lastError || new Error("config.js fetch failed");
-    }
-
-    async function syncFromLatestConfig({ force = false } = {}) {
-      try {
-        const fresh = await fetchLatestConfig();
-        channels = fresh.channels;
-        if (fresh.remoteConfigUrl) {
-          window.LIVE_CONFIG.remoteConfigUrl = fresh.remoteConfigUrl;
-        }
-        if (!currentChannelKey) return false;
-        const freshChannel = channels[currentChannelKey];
-        if (!freshChannel) return false;
-
-        const identity = embedIdentity(freshChannel);
-        const idChanged = identity && identity !== activeEmbedIdentity;
-        const dueForResync =
-          !!activeEmbedIdentity && Date.now() - lastMountedAt >= LIVE_RESYNC_MS;
-
-        if (force || idChanged || dueForResync) {
-          if (force || dueForResync) activeEmbedIdentity = "";
-          return mountChannel(freshChannel, { force: true });
-        }
-        return false;
-      } catch (err) {
-        console.warn("config.js poll failed, will retry:", err);
-        return false;
-      }
-    }
-
-    function pollForConfigUpdates() {
-      let pollInFlight = false;
-      const tick = async () => {
-        if (pollInFlight) return;
-        pollInFlight = true;
-        try {
-          await syncFromLatestConfig();
-        } finally {
-          pollInFlight = false;
-        }
-      };
-
-      tick();
-      setInterval(tick, CONFIG_POLL_MS);
-
-      // Background tabs get throttled timers — catch up as soon as visible again.
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") tick();
+    function buildChrome() {
+      hint.textContent =
+        channelOrder.map((key, i) => `${i + 1} ${channels[key].label}`).join(" · ") +
+        " · 유튜브 없음";
+      channelBar.innerHTML = channelOrder
+        .map(
+          (key) =>
+            `<button class="channel-btn" type="button" data-channel="${key}">${channels[key].label}</button>`
+        )
+        .join("");
+      [...document.querySelectorAll(".channel-btn")].forEach((btn) => {
+        btn.addEventListener("click", () => setChannel(btn.dataset.channel));
       });
-      window.addEventListener("focus", tick);
     }
 
     function initViewer() {
       viewerReady = true;
-
-      buttons.forEach((btn) => {
-        btn.addEventListener("click", () => setChannel(btn.dataset.channel));
-      });
-
+      buildChrome();
       window.addEventListener("keydown", (e) => {
         const index = Number(e.key) - 1;
-        if (index >= 0 && index < channelOrder.length) {
-          setChannel(channelOrder[index]);
-        }
+        if (index >= 0 && index < channelOrder.length) setChannel(channelOrder[index]);
       });
-
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") tickFrames();
+      });
+      const paramsCh = new URLSearchParams(location.search).get("ch");
       const initial =
-        new URLSearchParams(location.search).get("ch") ||
-        defaultChannel ||
-        channelOrder[0];
-
+        paramsCh ||
+        cfg.defaultChannel ||
+        (channelOrder.includes("all") ? "all" : channelOrder[0]);
       setChannel(channels[initial] ? initial : channelOrder[0]);
-      pollForConfigUpdates();
     }
 
-    async function tryHubRedirect() {
-      const cfg = window.LIVE_CONFIG || {};
-      const params = new URLSearchParams(location.search);
-      // ?yt=1 이면 유튜브 강제 (외부 배포/폴백)
-      if (params.get("yt") === "1" || params.get("youtube") === "1") return false;
-      if (cfg.preferHub === false) return false;
-      const bases = Array.isArray(cfg.hubBaseUrls) ? cfg.hubBaseUrls : [];
-      if (!bases.length) return false;
-
-      const key = params.get("key") || cfg.accessKey || "";
-      const ch = params.get("ch") || cfg.defaultChannel || "all";
-
-      function probeHttps(root) {
-        const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 2500);
-        return fetch(root + "/api/viewer/channels", {
+    async function probeHub(base) {
+      const root = String(base || "").replace(/\/$/, "");
+      if (!root) return null;
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 4000);
+      try {
+        const res = await fetch(root + "/api/viewer/channels", {
           cache: "no-store",
           mode: "cors",
           signal: ctrl.signal,
-        })
-          .then((res) => {
-            clearTimeout(t);
-            return res.ok;
-          })
-          .catch(() => {
-            clearTimeout(t);
-            return false;
-          });
-      }
-
-      // HTTPS 페이지 → HTTP 허브는 fetch가 막히므로 img(패시브)로 같은 PC 여부만 확인
-      function probeHttp(root) {
-        return new Promise((resolve) => {
-          const img = new Image();
-          const t = setTimeout(() => {
-            img.onload = img.onerror = null;
-            img.src = "";
-            resolve(false);
-          }, 1800);
-          img.onload = () => {
-            clearTimeout(t);
-            resolve(true);
-          };
-          img.onerror = () => {
-            clearTimeout(t);
-            resolve(false);
-          };
-          img.src = root + "/live/01?probe=" + Date.now();
         });
+        clearTimeout(t);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return { root, data };
+      } catch (_) {
+        clearTimeout(t);
+        return null;
       }
-
-      for (const base of bases) {
-        const root = String(base || "").replace(/\/$/, "");
-        if (!root) continue;
-        const ok = root.startsWith("https:")
-          ? await probeHttps(root)
-          : await probeHttp(root);
-        if (!ok) continue;
-        const q = new URLSearchParams();
-        if (key) q.set("key", key);
-        q.set("ch", ch);
-        location.replace(root + "/viewer?" + q.toString());
-        return true;
-      }
-      return false;
     }
 
-    (async function boot() {
-      const redirected = await tryHubRedirect();
-      if (redirected) return;
+    async function resolveHub() {
+      const bases = Array.isArray(cfg.hubBaseUrls) ? cfg.hubBaseUrls.slice() : [];
+      // http localhost only useful when page itself is http on same PC
+      for (const base of bases) {
+        if (location.protocol === "https:" && String(base).startsWith("http:")) continue;
+        const hit = await probeHub(base);
+        if (hit) return hit;
+      }
+      // last resort: try http localhost when opened somehow locally
+      return probeHub("http://127.0.0.1:8787");
+    }
+
+    async function boot() {
+      gateError.textContent = "허브 연결 중…";
+      gate.classList.add("visible");
+      const hit = await resolveHub();
+      if (!hit) {
+        gateError.textContent =
+          "허브에 연결할 수 없습니다. 메인 PC에서 허브+공개터널이 켜져 있는지 확인하세요.";
+        return;
+      }
+      hubBase = hit.root;
+      accessKey = hit.data.accessKey || cfg.accessKey || "";
+      channels = hit.data.channels || {};
+      channelOrder = hit.data.order || Object.keys(channels);
+      if (!channelOrder.length) {
+        gateError.textContent = "허브 채널 설정이 비어 있습니다.";
+        return;
+      }
+      gateError.textContent = "";
       if (isAccessGranted()) showApp();
       else showGate();
-    })();
+    }
+
+    boot();
   </script>
 </body>
 </html>
