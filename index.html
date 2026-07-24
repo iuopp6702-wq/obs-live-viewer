@@ -134,7 +134,7 @@
 
   <script>
     const STORAGE_KEY = "live-viewer-access";
-    const POLL_MS = 300;
+    const POLL_MS = 120;
     let cfg = window.LIVE_CONFIG || {};
     let accessKey = cfg.accessKey || "";
     let hubBase = "";
@@ -143,6 +143,7 @@
     let viewerReady = false;
     let pollTimer = null;
     let pollImgs = [];
+    let remountTimer = null;
 
     const gate = document.getElementById("gate");
     const gateInput = document.getElementById("gateInput");
@@ -200,6 +201,8 @@
     function stopPolling() {
       if (pollTimer) clearInterval(pollTimer);
       pollTimer = null;
+      if (remountTimer) clearInterval(remountTimer);
+      remountTimer = null;
       pollImgs = [];
     }
 
@@ -208,16 +211,20 @@
       for (const item of pollImgs) {
         if (!item.id || !item.img || item.busy) continue;
         item.busy = true;
-        const url = hubBase + "/frame/" + encodeURIComponent(item.id) + "?t=" + t;
-        const probe = new Image();
-        probe.onload = () => {
-          item.img.src = url;
+        const url =
+          hubBase +
+          "/frame/" +
+          encodeURIComponent(item.id) +
+          "?t=" +
+          t +
+          "&r=" +
+          Math.random().toString(36).slice(2);
+        const done = () => {
           item.busy = false;
         };
-        probe.onerror = () => {
-          item.busy = false;
-        };
-        probe.src = url;
+        item.img.onload = done;
+        item.img.onerror = done;
+        item.img.src = url;
       }
     }
 
@@ -225,6 +232,11 @@
       stopPolling();
       tickFrames();
       pollTimer = setInterval(tickFrames, POLL_MS);
+      // 장시간 탭에서 캐시/연결 꼬임 방지
+      remountTimer = setInterval(() => {
+        for (const item of pollImgs) item.busy = false;
+        tickFrames();
+      }, 20000);
     }
 
     function mountChannel(channel) {
@@ -244,7 +256,13 @@
         if (a && a.id) {
           const img = document.createElement("img");
           img.alt = a.name || a.id;
-          img.src = hubBase + "/frame/" + encodeURIComponent(a.id) + "?t=" + Date.now();
+          img.decoding = "async";
+          img.src =
+            hubBase +
+            "/frame/" +
+            encodeURIComponent(a.id) +
+            "?t=" +
+            Date.now();
           const lb = document.createElement("div");
           lb.className = "lb";
           lb.textContent = a.name || a.id;
