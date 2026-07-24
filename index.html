@@ -41,7 +41,7 @@
       width: 100%; padding: 14px; border: 0; border-radius: 10px;
       background: #2d7dd2; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
     }
-    .gate-error { margin-top: 10px; color: #ff6b6b; font-size: 13px; min-height: 18px; }
+    .gate-error { margin-top: 10px; color: #ff6b6b; font-size: 13px; min-height: 18px; white-space: pre-wrap; }
     .app { position: fixed; inset: 0; background: #000; }
     .app.is-hidden { display: none; }
     #liveFrame {
@@ -62,14 +62,11 @@
   </div>
 
   <div class="app is-hidden" id="app">
+    <!-- 허브 뷰어(연속 MJPEG)를 그대로 임베드 — 깜빡이는 JPEG 폴링 안 씀 -->
     <iframe id="liveFrame" title="검사기 라이브" allow="fullscreen" allowfullscreen></iframe>
   </div>
 
   <script>
-    /**
-     * GitHub Pages 는 껍데기만 담당.
-     * 실제 연속 화면은 허브 /viewer 를 iframe 으로 띄움 (허브 뷰어와 동일하게 움직임).
-     */
     const STORAGE_KEY = "live-viewer-access";
     let cfg = window.LIVE_CONFIG || {};
     let accessKey = cfg.accessKey || "";
@@ -104,8 +101,6 @@
       const q = new URLSearchParams();
       if (accessKey) q.set("key", accessKey);
       q.set("ch", ch);
-      // 캐시 방지
-      q.set("_", String(Date.now()));
       return hubBase.replace(/\/$/, "") + "/viewer?" + q.toString();
     }
 
@@ -123,7 +118,6 @@
       }
       gateError.textContent = "접근 코드가 올바르지 않습니다.";
     }
-
     gateSubmit.addEventListener("click", () => tryAccess(gateInput.value.trim()));
     gateInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") tryAccess(gateInput.value.trim());
@@ -143,8 +137,7 @@
         });
         clearTimeout(t);
         if (!res.ok) return null;
-        const data = await res.json();
-        return { root, data };
+        return { root, data: await res.json() };
       } catch (_) {
         clearTimeout(t);
         return null;
@@ -153,13 +146,13 @@
 
     async function resolveHub() {
       const bases = Array.isArray(cfg.hubBaseUrls) ? cfg.hubBaseUrls.slice() : [];
-      // remote config 최신 터널 URL
       try {
         const remote = cfg.remoteConfigUrl;
         if (remote) {
-          const res = await fetch(remote + (remote.includes("?") ? "&" : "?") + "_=" + Date.now(), {
-            cache: "no-store",
-          });
+          const res = await fetch(
+            remote + (remote.includes("?") ? "&" : "?") + "_=" + Date.now(),
+            { cache: "no-store" }
+          );
           if (res.ok) {
             const text = await res.text();
             const sandbox = {};
@@ -191,7 +184,7 @@
       const hit = await resolveHub();
       if (!hit) {
         gateError.textContent =
-          "허브에 연결할 수 없습니다. 메인 PC에서 허브 + START_PUBLIC.bat(공개터널)이 켜져 있는지 확인하세요.";
+          "허브에 연결할 수 없습니다.\n메인 PC에서 허브 + START_PUBLIC.bat 을 켜 주세요.";
         return;
       }
       hubBase = hit.root;
@@ -200,13 +193,6 @@
       if (isAccessGranted()) showApp();
       else showGate();
     }
-
-    // ch 변경 시 iframe 갱신
-    window.addEventListener("popstate", () => {
-      if (hubBase && !app.classList.contains("is-hidden")) {
-        liveFrame.src = viewerUrl();
-      }
-    });
 
     boot();
   </script>
