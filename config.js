@@ -5,6 +5,6 @@
   accessKey: "ccb1234",
   mode: "hub",
   hubBaseUrls: [
-    "https://recommend-pic-officer-relative.trycloudflare.com",
+    "https://anything-subsection-insight-extending.trycloudflare.com",
   ],
 };
