@@ -5,6 +5,6 @@
   accessKey: "ccb1234",
   mode: "hub",
   hubBaseUrls: [
-    "https://soon-reporters-corners-symantec.trycloudflare.com",
+    "https://adaptor-observed-nottingham-mix.trycloudflare.com",
   ],
 };
