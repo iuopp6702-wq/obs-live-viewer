@@ -5,6 +5,6 @@
   accessKey: "ccb1234",
   mode: "hub",
   hubBaseUrls: [
-    "https://anything-subsection-insight-extending.trycloudflare.com",
+    "https://soon-reporters-corners-symantec.trycloudflare.com",
   ],
 };
