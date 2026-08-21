@@ -5,6 +5,6 @@
   accessKey: "ccb1234",
   mode: "hub",
   hubBaseUrls: [
-    "https://adaptor-observed-nottingham-mix.trycloudflare.com",
+    "https://radiation-maximize-atlantic-ladder.trycloudflare.com",
   ],
 };
