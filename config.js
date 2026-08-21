@@ -5,6 +5,6 @@
   accessKey: "ccb1234",
   mode: "hub",
   hubBaseUrls: [
-    "https://instance-councils-macintosh-cigarette.trycloudflare.com",
+    "https://confidence-designated-uses-mines.trycloudflare.com",
   ],
 };
