@@ -5,6 +5,6 @@
   accessKey: "ccb1234",
   mode: "hub",
   hubBaseUrls: [
-    "https://radiation-maximize-atlantic-ladder.trycloudflare.com",
+    "https://instance-councils-macintosh-cigarette.trycloudflare.com",
   ],
 };
