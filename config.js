@@ -5,6 +5,6 @@
   accessKey: "ccb1234",
   mode: "hub",
   hubBaseUrls: [
-    "https://confidence-designated-uses-mines.trycloudflare.com",
+    "https://tahoe-blacks-remember-eclipse.trycloudflare.com",
   ],
 };
