@@ -5,6 +5,6 @@
   accessKey: "ccb1234",
   mode: "hub",
   hubBaseUrls: [
-    "https://tahoe-blacks-remember-eclipse.trycloudflare.com",
+    "https://cats-salad-truth-absorption.trycloudflare.com",
   ],
 };
