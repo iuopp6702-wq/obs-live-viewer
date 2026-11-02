@@ -5,6 +5,6 @@
   accessKey: "ccb1234",
   mode: "hub",
   hubBaseUrls: [
-    "https://cats-salad-truth-absorption.trycloudflare.com",
+    "https://patents-captain-cooked-stereo.trycloudflare.com",
   ],
 };
