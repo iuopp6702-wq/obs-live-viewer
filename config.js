@@ -5,6 +5,6 @@
   accessKey: "ccb1234",
   mode: "hub",
   hubBaseUrls: [
-    "https://patents-captain-cooked-stereo.trycloudflare.com",
+    "https://stationery-idaho-screw-jam.trycloudflare.com",
   ],
 };
